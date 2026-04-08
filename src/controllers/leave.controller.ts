@@ -1,6 +1,7 @@
 import { RequestHandler } from 'express';
 
 import { leaveService } from '../services/leave.service';
+import { buildCsv, sendCsvDownload } from '../utils/csv';
 import { sendSuccess } from '../utils/response';
 
 export const getLeaves: RequestHandler = async (req, res) => {
@@ -10,6 +11,29 @@ export const getLeaves: RequestHandler = async (req, res) => {
     message: 'Leave requests fetched successfully',
     data: leaves,
   });
+};
+
+export const exportLeavesCsv: RequestHandler = async (req, res) => {
+  const leaves = await leaveService.exportLeaves(req.leaveListQuery!);
+  const csv = buildCsv(leaves, [
+    { header: 'id', accessor: (leave) => leave.id },
+    { header: 'user_id', accessor: (leave) => leave.userId },
+    { header: 'employee_code', accessor: (leave) => leave.employeeCode },
+    { header: 'full_name', accessor: (leave) => leave.fullName },
+    { header: 'leave_type', accessor: (leave) => leave.leaveType },
+    { header: 'start_date', accessor: (leave) => leave.startDate },
+    { header: 'end_date', accessor: (leave) => leave.endDate },
+    { header: 'reason', accessor: (leave) => leave.reason },
+    { header: 'status', accessor: (leave) => leave.status },
+    { header: 'approved_by', accessor: (leave) => leave.approvedBy },
+    { header: 'approver_name', accessor: (leave) => leave.approverName },
+    { header: 'approved_at', accessor: (leave) => leave.approvedAt },
+    { header: 'rejection_reason', accessor: (leave) => leave.rejectionReason },
+    { header: 'created_at', accessor: (leave) => leave.createdAt },
+    { header: 'updated_at', accessor: (leave) => leave.updatedAt },
+  ]);
+
+  return sendCsvDownload(res, 'leave-requests.csv', csv);
 };
 
 export const getLeaveById: RequestHandler = async (req, res) => {

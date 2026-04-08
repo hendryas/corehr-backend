@@ -23,6 +23,12 @@ router.get(
 router.post('/check-in', allowRoles('admin_hr', 'employee'), attendanceController.checkIn);
 router.post('/check-out', allowRoles('admin_hr', 'employee'), attendanceController.checkOut);
 router.get(
+  '/export/csv',
+  allowRoles('admin_hr'),
+  validateAttendanceListQuery,
+  attendanceController.exportAttendancesCsv,
+);
+router.get(
   '/',
   allowRoles('admin_hr', 'employee'),
   validateAttendanceListQuery,

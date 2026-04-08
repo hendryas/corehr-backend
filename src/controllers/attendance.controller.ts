@@ -1,6 +1,7 @@
 import { RequestHandler } from 'express';
 
 import { attendanceService } from '../services/attendance.service';
+import { buildCsv, sendCsvDownload } from '../utils/csv';
 import { sendSuccess } from '../utils/response';
 
 export const getAttendances: RequestHandler = async (req, res) => {
@@ -10,6 +11,26 @@ export const getAttendances: RequestHandler = async (req, res) => {
     message: 'Attendances fetched successfully',
     data: attendances,
   });
+};
+
+export const exportAttendancesCsv: RequestHandler = async (req, res) => {
+  const attendances = await attendanceService.exportAttendances(req.attendanceListQuery!);
+  const csv = buildCsv(attendances, [
+    { header: 'id', accessor: (attendance) => attendance.id },
+    { header: 'user_id', accessor: (attendance) => attendance.userId },
+    { header: 'employee_code', accessor: (attendance) => attendance.employeeCode },
+    { header: 'full_name', accessor: (attendance) => attendance.fullName },
+    { header: 'role', accessor: (attendance) => attendance.role },
+    { header: 'attendance_date', accessor: (attendance) => attendance.attendanceDate },
+    { header: 'check_in', accessor: (attendance) => attendance.checkIn },
+    { header: 'check_out', accessor: (attendance) => attendance.checkOut },
+    { header: 'status', accessor: (attendance) => attendance.status },
+    { header: 'notes', accessor: (attendance) => attendance.notes },
+    { header: 'created_at', accessor: (attendance) => attendance.createdAt },
+    { header: 'updated_at', accessor: (attendance) => attendance.updatedAt },
+  ]);
+
+  return sendCsvDownload(res, 'attendances.csv', csv);
 };
 
 export const getAttendanceById: RequestHandler = async (req, res) => {

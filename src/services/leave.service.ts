@@ -58,6 +58,10 @@ export const leaveService = {
     };
   },
 
+  async exportLeaves(query: LeaveListQuery) {
+    return leaveRepository.findAllForExport(query);
+  },
+
   async getLeaveById(authUser: AuthenticatedUser, id: number) {
     const leaveRequest = await leaveRepository.findById(id);
 

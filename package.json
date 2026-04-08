@@ -6,8 +6,13 @@
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run typecheck",
     "start": "node dist/server.js",
+    "start:prod": "npm run build && npm run start",
+    "migrate:run": "node dist/database/migrate.js",
     "migrate": "npm run build && node dist/database/migrate.js",
+    "seed:run": "node dist/database/seed.js",
     "seed": "npm run build && node dist/database/seed.js"
   },
   "keywords": [],

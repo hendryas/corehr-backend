@@ -3,7 +3,6 @@ import { AttendanceCreatePayload, AttendanceListQuery, AttendanceUpdatePayload }
 import { AppError } from '../utils/app-error';
 import { formatDateForMysql, formatDateTimeForMysql } from '../utils/date';
 import {
-  getMysqlErrorMessage,
   isDuplicateEntryError,
   isForeignKeyConstraintError,
 } from '../utils/mysql-error';
@@ -58,6 +57,10 @@ export const attendanceService = {
         totalPages: result.total === 0 ? 0 : Math.ceil(result.total / scopedQuery.limit),
       },
     };
+  },
+
+  async exportAttendances(query: AttendanceListQuery) {
+    return attendanceRepository.findAllForExport(query);
   },
 
   async getAttendanceById(authUser: AuthenticatedUser, id: number) {

@@ -20,6 +20,12 @@ router.get(
   employeeController.getMyProfile,
 );
 router.get(
+  '/export/csv',
+  allowRoles('admin_hr'),
+  validateEmployeeListQuery,
+  employeeController.exportEmployeesCsv,
+);
+router.get(
   '/',
   allowRoles('admin_hr'),
   validateEmployeeListQuery,

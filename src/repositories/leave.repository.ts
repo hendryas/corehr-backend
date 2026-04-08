@@ -143,6 +143,20 @@ export const leaveRepository = {
     };
   },
 
+  async findAllForExport(query: LeaveListQuery): Promise<LeaveEntity[]> {
+    const { whereSql, values } = buildLeaveFilters(query);
+    const [rows] = await db.execute<LeaveRow[]>(
+      `
+        ${leaveSelect}
+        ${whereSql}
+        ORDER BY l.created_at DESC
+      `,
+      values,
+    );
+
+    return rows.map(mapLeave);
+  },
+
   async findById(id: number): Promise<LeaveEntity | null> {
     const [rows] = await db.execute<LeaveRow[]>(
       `${leaveSelect} WHERE l.id = ? LIMIT 1`,

@@ -149,6 +149,20 @@ export const employeeRepository = {
     };
   },
 
+  async findAllForExport(query: EmployeeListQuery): Promise<EmployeeEntity[]> {
+    const { whereSql, values } = buildEmployeeFilters(query);
+    const [rows] = await db.execute<EmployeeRow[]>(
+      `
+        ${employeeSelect}
+        ${whereSql}
+        ORDER BY u.created_at DESC
+      `,
+      values,
+    );
+
+    return rows.map(mapEmployee).map(toSafeEmployee);
+  },
+
   async findById(id: number): Promise<EmployeeEntity | null> {
     const employee = await this.findRecordById(id);
 

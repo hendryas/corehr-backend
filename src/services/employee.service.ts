@@ -68,6 +68,10 @@ export const employeeService = {
     };
   },
 
+  async exportEmployees(query: EmployeeListQuery) {
+    return employeeRepository.findAllForExport(query);
+  },
+
   async getEmployeeById(id: number) {
     const employee = await employeeRepository.findById(id);
 

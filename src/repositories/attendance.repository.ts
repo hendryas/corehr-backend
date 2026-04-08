@@ -125,6 +125,20 @@ export const attendanceRepository = {
     };
   },
 
+  async findAllForExport(query: AttendanceListQuery): Promise<AttendanceEntity[]> {
+    const { whereSql, values } = buildAttendanceFilters(query);
+    const [rows] = await db.execute<AttendanceRow[]>(
+      `
+        ${attendanceSelect}
+        ${whereSql}
+        ORDER BY a.attendance_date DESC, a.created_at DESC
+      `,
+      values,
+    );
+
+    return rows.map(mapAttendance);
+  },
+
   async findById(id: number): Promise<AttendanceEntity | null> {
     const [rows] = await db.execute<AttendanceRow[]>(
       `${attendanceSelect} WHERE a.id = ? LIMIT 1`,

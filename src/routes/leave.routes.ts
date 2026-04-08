@@ -16,6 +16,12 @@ const router = Router();
 router.use(authenticate);
 
 router.get('/me', allowRoles('admin_hr', 'employee'), validateLeaveListQuery, leaveController.getMyLeaves);
+router.get(
+  '/export/csv',
+  allowRoles('admin_hr'),
+  validateLeaveListQuery,
+  leaveController.exportLeavesCsv,
+);
 router.get('/', allowRoles('admin_hr', 'employee'), validateLeaveListQuery, leaveController.getLeaves);
 router.get(
   '/:id',
