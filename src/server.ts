@@ -1,24 +1,16 @@
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
+import app from './app';
+import { initializeDatabaseConnection } from './config/db';
+import { env } from './config/env';
 
-dotenv.config();
+const startServer = async (): Promise<void> => {
+  await initializeDatabaseConnection();
 
-const app = express();
+  app.listen(env.port, () => {
+    console.log(`Server running on http://localhost:${env.port}`);
+  });
+};
 
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-app.get('/', (_req, res) => {
-    res.json({
-        success: true,
-        message: 'CoreHR Backend API is running'
-    });
+startServer().catch((error: unknown) => {
+  console.error('Failed to start server', error);
+  process.exit(1);
 });
-
-const PORT = Number(process.env.PORT) || 3000;
-
-app.listen(PORT, () => {
-     console.log(`Server running on http://localhost:${PORT}`);
-})

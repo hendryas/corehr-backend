@@ -1,0 +1,1 @@
+CoreHR backend docs placeholder.
