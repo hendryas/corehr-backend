@@ -22,6 +22,9 @@ Backend API untuk technical test CoreHR Sistem HR. Project ini dibangun dengan p
 - CRUD position
 - CRUD employee
 - Endpoint `GET /api/employees/me/profile`
+- Attendance module dengan check-in/check-out
+- Leave request module dengan approve/reject
+- Dashboard stats endpoint
 - JWT authentication
 - Role-based middleware
 - Custom migration runner tanpa ORM
@@ -151,6 +154,64 @@ Query untuk `GET /api/employees`:
 - `is_active`
 - `page`
 - `limit`
+
+## Attendance Endpoints
+
+- `GET /api/attendances`
+- `GET /api/attendances/:id`
+- `POST /api/attendances`
+- `PUT /api/attendances/:id`
+- `DELETE /api/attendances/:id`
+- `GET /api/attendances/me`
+- `POST /api/attendances/check-in`
+- `POST /api/attendances/check-out`
+
+Access:
+
+- `admin_hr`: list semua attendance, detail semua attendance, CRUD manual
+- `employee`: hanya attendance miliknya sendiri, plus check-in dan check-out
+
+Query untuk `GET /api/attendances`:
+
+- `user_id`
+- `attendance_date`
+- `status`
+- `page`
+- `limit`
+
+## Leave Endpoints
+
+- `GET /api/leaves`
+- `GET /api/leaves/:id`
+- `POST /api/leaves`
+- `PUT /api/leaves/:id`
+- `DELETE /api/leaves/:id`
+- `GET /api/leaves/me`
+- `PATCH /api/leaves/:id/approve`
+- `PATCH /api/leaves/:id/reject`
+
+Access:
+
+- `admin_hr`: lihat semua leave request, approve, reject, dan bisa update/delete pending leave
+- `employee`: create leave, lihat leave miliknya, update/delete leave miliknya yang masih pending
+
+Query untuk `GET /api/leaves`:
+
+- `user_id`
+- `status`
+- `leave_type`
+- `start_date`
+- `end_date`
+- `page`
+- `limit`
+
+## Dashboard Endpoint
+
+- `GET /api/dashboard/stats`
+
+Access:
+
+- `admin_hr`: akses statistik dashboard HR
 
 ## Response Format
 

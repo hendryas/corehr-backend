@@ -82,6 +82,10 @@ export const isValidDateString = (value: string): boolean => {
   return !Number.isNaN(parsedDate.getTime()) && parsedDate.toISOString().startsWith(value);
 };
 
+export const isOneOf = <T extends string>(value: string, allowedValues: readonly T[]): value is T => {
+  return allowedValues.includes(value as T);
+};
+
 export const sendValidationError = (
   res: Parameters<typeof sendError>[0],
   errors: ValidationErrors,
