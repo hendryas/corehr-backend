@@ -18,6 +18,10 @@ Backend API untuk technical test CoreHR Sistem HR. Project ini dibangun dengan p
 - Auth login untuk `admin_hr` dan `employee`
 - Endpoint `POST /api/auth/login`
 - Endpoint `GET /api/auth/me`
+- CRUD department
+- CRUD position
+- CRUD employee
+- Endpoint `GET /api/employees/me/profile`
 - JWT authentication
 - Role-based middleware
 - Custom migration runner tanpa ORM
@@ -98,6 +102,55 @@ Header:
 ```text
 Authorization: Bearer <token>
 ```
+
+## Department Endpoints
+
+- `GET /api/departments`
+- `GET /api/departments/:id`
+- `POST /api/departments`
+- `PUT /api/departments/:id`
+- `DELETE /api/departments/:id`
+
+Access:
+
+- `admin_hr`: full CRUD
+- `employee`: GET list dan detail
+
+## Position Endpoints
+
+- `GET /api/positions`
+- `GET /api/positions/:id`
+- `POST /api/positions`
+- `PUT /api/positions/:id`
+- `DELETE /api/positions/:id`
+
+Access:
+
+- `admin_hr`: full CRUD
+- `employee`: GET list dan detail
+
+## Employee Endpoints
+
+- `GET /api/employees`
+- `GET /api/employees/:id`
+- `POST /api/employees`
+- `PUT /api/employees/:id`
+- `DELETE /api/employees/:id`
+- `GET /api/employees/me/profile`
+
+Access:
+
+- `admin_hr`: full CRUD employee
+- `employee`: hanya `GET /api/employees/me/profile`
+
+Query untuk `GET /api/employees`:
+
+- `search`
+- `department_id`
+- `position_id`
+- `is_active`
+- `page`
+- `limit`
 
 ## Response Format
 
