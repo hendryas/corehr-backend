@@ -124,7 +124,8 @@ export const employeeRepository = {
     const { whereSql, values } = buildEmployeeFilters(query);
     const offset = (query.page - 1) * query.limit;
 
-    const [rows] = await db.execute<EmployeeRow[]>(
+    // MySQL on this environment rejects prepared placeholders in LIMIT/OFFSET.
+    const [rows] = await db.query<EmployeeRow[]>(
       `
         ${employeeSelect}
         ${whereSql}

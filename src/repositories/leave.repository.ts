@@ -118,7 +118,8 @@ export const leaveRepository = {
     const { whereSql, values } = buildLeaveFilters(query);
     const offset = (query.page - 1) * query.limit;
 
-    const [rows] = await db.execute<LeaveRow[]>(
+    // MySQL on this environment rejects prepared placeholders in LIMIT/OFFSET.
+    const [rows] = await db.query<LeaveRow[]>(
       `
         ${leaveSelect}
         ${whereSql}

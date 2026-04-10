@@ -100,7 +100,8 @@ export const attendanceRepository = {
     const { whereSql, values } = buildAttendanceFilters(query);
     const offset = (query.page - 1) * query.limit;
 
-    const [rows] = await db.execute<AttendanceRow[]>(
+    // MySQL on this environment rejects prepared placeholders in LIMIT/OFFSET.
+    const [rows] = await db.query<AttendanceRow[]>(
       `
         ${attendanceSelect}
         ${whereSql}
