@@ -7,5 +7,6 @@ export const notFoundMiddleware: RequestHandler = (req, res) => {
     statusCode: 404,
     message: `Route ${req.method} ${req.originalUrl} not found`,
     errors: null,
+    requestId: req.requestId ?? null,
   });
 };

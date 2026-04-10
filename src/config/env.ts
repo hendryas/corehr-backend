@@ -31,6 +31,7 @@ const parseCorsOrigins = (value: string): string[] => {
 
 export const env = {
   nodeEnv: process.env.NODE_ENV ?? 'development',
+  logLevel: process.env.LOG_LEVEL ?? (process.env.NODE_ENV === 'development' ? 'debug' : 'info'),
   port: toNumber(process.env.PORT ?? '3000', 'PORT'),
   corsOrigins: parseCorsOrigins(process.env.CORS_ORIGIN ?? 'http://localhost:4200'),
   jwtSecret: requireEnv('JWT_SECRET'),

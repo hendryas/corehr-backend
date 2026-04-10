@@ -2,6 +2,7 @@ import { AttendanceStatus, AuthenticatedUser } from '../types/auth';
 import { AttendanceCreatePayload, AttendanceListQuery, AttendanceUpdatePayload } from '../types/attendance';
 import { AppError } from '../utils/app-error';
 import { formatDateForMysql, formatDateTimeForMysql } from '../utils/date';
+import { AuditLogContext, logAuditEvent } from '../utils/logger';
 import {
   isDuplicateEntryError,
   isForeignKeyConstraintError,
@@ -82,12 +83,24 @@ export const attendanceService = {
     });
   },
 
-  async createAttendance(payload: AttendanceCreatePayload) {
+  async createAttendance(payload: AttendanceCreatePayload, auditContext?: AuditLogContext) {
     await ensureUserExists(payload.userId);
     ensureCheckOutAfterCheckIn(payload.checkIn, payload.checkOut);
 
     try {
       const attendanceId = await attendanceRepository.create(payload);
+      logAuditEvent(
+        auditContext,
+        'attendance.created',
+        {
+          module: 'attendance',
+          targetAttendanceId: attendanceId,
+          targetUserId: payload.userId,
+          attendanceDate: payload.attendanceDate,
+          status: payload.status,
+        },
+        'Attendance created',
+      );
 
       return this.getAttendanceById(
         {
@@ -121,7 +134,7 @@ export const attendanceService = {
     }
   },
 
-  async updateAttendance(id: number, payload: AttendanceUpdatePayload) {
+  async updateAttendance(id: number, payload: AttendanceUpdatePayload, auditContext?: AuditLogContext) {
     await this.getAttendanceById(
       {
         id: payload.userId,
@@ -146,6 +159,18 @@ export const attendanceService = {
 
     try {
       await attendanceRepository.update(id, payload);
+      logAuditEvent(
+        auditContext,
+        'attendance.updated',
+        {
+          module: 'attendance',
+          targetAttendanceId: id,
+          targetUserId: payload.userId,
+          attendanceDate: payload.attendanceDate,
+          status: payload.status,
+        },
+        'Attendance updated',
+      );
     } catch (error) {
       if (isDuplicateEntryError(error)) {
         throw new AppError('Attendance for this employee and date already exists', 409);
@@ -179,7 +204,7 @@ export const attendanceService = {
     );
   },
 
-  async deleteAttendance(id: number) {
+  async deleteAttendance(id: number, auditContext?: AuditLogContext) {
     const attendance = await attendanceRepository.findById(id);
 
     if (!attendance) {
@@ -187,9 +212,20 @@ export const attendanceService = {
     }
 
     await attendanceRepository.softDelete(id);
+    logAuditEvent(
+      auditContext,
+      'attendance.soft_deleted',
+      {
+        module: 'attendance',
+        targetAttendanceId: id,
+        targetUserId: attendance.userId,
+        attendanceDate: attendance.attendanceDate,
+      },
+      'Attendance soft deleted',
+    );
   },
 
-  async checkIn(authUser: AuthenticatedUser) {
+  async checkIn(authUser: AuthenticatedUser, auditContext?: AuditLogContext) {
     const now = new Date();
     const attendanceDate = formatDateForMysql(now);
     const existingAttendance = await attendanceRepository.findByUserIdAndDate(authUser.id, attendanceDate);
@@ -211,10 +247,26 @@ export const attendanceService = {
       notes: null,
     });
 
+    logAuditEvent(
+      {
+        ...auditContext,
+        actorUserId: authUser.id,
+        actorRole: authUser.role,
+      },
+      'attendance.check_in',
+      {
+        module: 'attendance',
+        targetAttendanceId: attendanceId,
+        targetUserId: authUser.id,
+        attendanceDate,
+      },
+      'Attendance check-in successful',
+    );
+
     return this.getAttendanceById(authUser, attendanceId);
   },
 
-  async checkOut(authUser: AuthenticatedUser) {
+  async checkOut(authUser: AuthenticatedUser, auditContext?: AuditLogContext) {
     const now = new Date();
     const attendanceDate = formatDateForMysql(now);
     const attendance = await attendanceRepository.findByUserIdAndDate(authUser.id, attendanceDate);
@@ -238,6 +290,21 @@ export const attendanceService = {
     }
 
     await attendanceRepository.updateCheckOut(attendance.id, checkOut);
+    logAuditEvent(
+      {
+        ...auditContext,
+        actorUserId: authUser.id,
+        actorRole: authUser.role,
+      },
+      'attendance.check_out',
+      {
+        module: 'attendance',
+        targetAttendanceId: attendance.id,
+        targetUserId: authUser.id,
+        attendanceDate,
+      },
+      'Attendance check-out successful',
+    );
 
     return this.getAttendanceById(authUser, attendance.id);
   },

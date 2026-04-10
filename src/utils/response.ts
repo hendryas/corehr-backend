@@ -10,6 +10,7 @@ interface ErrorResponseOptions {
   statusCode?: number;
   message: string;
   errors?: unknown;
+  requestId?: string | null;
 }
 
 export const sendSuccess = <T>(
@@ -25,11 +26,12 @@ export const sendSuccess = <T>(
 
 export const sendError = (
   res: Response,
-  { statusCode = 500, message, errors = null }: ErrorResponseOptions,
+  { statusCode = 500, message, errors = null, requestId = null }: ErrorResponseOptions,
 ): Response => {
   return res.status(statusCode).json({
     success: false,
     message,
     errors,
+    requestId,
   });
 };

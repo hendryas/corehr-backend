@@ -4,7 +4,9 @@ import { authService } from '../services/auth.service';
 import { sendSuccess } from '../utils/response';
 
 export const login: RequestHandler = async (req, res) => {
-  const result = await authService.login(req.body);
+  const result = await authService.login(req.body, {
+    logger: req.logger,
+  });
 
   return sendSuccess(res, {
     message: 'Login successful',

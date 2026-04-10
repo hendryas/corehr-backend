@@ -52,7 +52,11 @@ export const getMyAttendances: RequestHandler = async (req, res) => {
 };
 
 export const createAttendance: RequestHandler = async (req, res) => {
-  const attendance = await attendanceService.createAttendance(req.body);
+  const attendance = await attendanceService.createAttendance(req.body, {
+    logger: req.logger,
+    actorUserId: req.user?.id ?? null,
+    actorRole: req.user?.role ?? null,
+  });
 
   return sendSuccess(res, {
     statusCode: 201,
@@ -62,7 +66,11 @@ export const createAttendance: RequestHandler = async (req, res) => {
 };
 
 export const updateAttendance: RequestHandler = async (req, res) => {
-  const attendance = await attendanceService.updateAttendance(Number(req.params.id), req.body);
+  const attendance = await attendanceService.updateAttendance(Number(req.params.id), req.body, {
+    logger: req.logger,
+    actorUserId: req.user?.id ?? null,
+    actorRole: req.user?.role ?? null,
+  });
 
   return sendSuccess(res, {
     message: 'Attendance updated successfully',
@@ -71,7 +79,11 @@ export const updateAttendance: RequestHandler = async (req, res) => {
 };
 
 export const deleteAttendance: RequestHandler = async (req, res) => {
-  await attendanceService.deleteAttendance(Number(req.params.id));
+  await attendanceService.deleteAttendance(Number(req.params.id), {
+    logger: req.logger,
+    actorUserId: req.user?.id ?? null,
+    actorRole: req.user?.role ?? null,
+  });
 
   return sendSuccess(res, {
     message: 'Attendance deleted successfully',
@@ -80,7 +92,11 @@ export const deleteAttendance: RequestHandler = async (req, res) => {
 };
 
 export const checkIn: RequestHandler = async (req, res) => {
-  const attendance = await attendanceService.checkIn(req.user!);
+  const attendance = await attendanceService.checkIn(req.user!, {
+    logger: req.logger,
+    actorUserId: req.user?.id ?? null,
+    actorRole: req.user?.role ?? null,
+  });
 
   return sendSuccess(res, {
     statusCode: 201,
@@ -90,7 +106,11 @@ export const checkIn: RequestHandler = async (req, res) => {
 };
 
 export const checkOut: RequestHandler = async (req, res) => {
-  const attendance = await attendanceService.checkOut(req.user!);
+  const attendance = await attendanceService.checkOut(req.user!, {
+    logger: req.logger,
+    actorUserId: req.user?.id ?? null,
+    actorRole: req.user?.role ?? null,
+  });
 
   return sendSuccess(res, {
     message: 'Check-out successful',

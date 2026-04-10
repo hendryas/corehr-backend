@@ -4,13 +4,18 @@ import express from 'express';
 import { env } from './config/env';
 import { errorMiddleware } from './middlewares/error.middleware';
 import { notFoundMiddleware } from './middlewares/not-found.middleware';
+import { requestContextMiddleware } from './middlewares/request-context.middleware';
+import { requestLoggerMiddleware } from './middlewares/request-logger.middleware';
 import apiRoutes from './routes';
 import { sendSuccess } from './utils/response';
 
 const app = express();
 
+app.use(requestContextMiddleware);
+app.use(requestLoggerMiddleware);
 app.use(
   cors({
+    exposedHeaders: ['X-Request-Id'],
     origin(origin, callback) {
       if (!origin || env.corsOrigins.includes(origin)) {
         return callback(null, true);
