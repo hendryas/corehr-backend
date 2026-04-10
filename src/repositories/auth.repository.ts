@@ -43,8 +43,8 @@ const authUserSelect = `
     p.id AS position_id,
     p.name AS position_name
   FROM users u
-  LEFT JOIN departments d ON d.id = u.department_id
-  LEFT JOIN positions p ON p.id = u.position_id
+  LEFT JOIN departments d ON d.id = u.department_id AND d.deleted_at IS NULL
+  LEFT JOIN positions p ON p.id = u.position_id AND p.deleted_at IS NULL
 `;
 
 const mapAuthUser = (row: AuthUserRow): AuthUserRecord => {
@@ -70,7 +70,7 @@ const mapAuthUser = (row: AuthUserRow): AuthUserRecord => {
 export const authRepository = {
   async findByEmail(email: string): Promise<AuthUserRecord | null> {
     const [rows] = await db.execute<AuthUserRow[]>(
-      `${authUserSelect} WHERE u.email = ? LIMIT 1`,
+      `${authUserSelect} WHERE u.email = ? AND u.deleted_at IS NULL LIMIT 1`,
       [email],
     );
 
@@ -81,7 +81,7 @@ export const authRepository = {
 
   async findActiveById(id: number): Promise<AuthenticatedUser | null> {
     const [rows] = await db.execute<AuthUserRow[]>(
-      `${authUserSelect} WHERE u.id = ? AND u.is_active = 1 LIMIT 1`,
+      `${authUserSelect} WHERE u.id = ? AND u.is_active = 1 AND u.deleted_at IS NULL LIMIT 1`,
       [id],
     );
 

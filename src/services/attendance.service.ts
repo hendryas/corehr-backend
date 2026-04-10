@@ -186,7 +186,7 @@ export const attendanceService = {
       throw new AppError('Attendance not found', 404);
     }
 
-    await attendanceRepository.delete(id);
+    await attendanceRepository.softDelete(id);
   },
 
   async checkIn(authUser: AuthenticatedUser) {

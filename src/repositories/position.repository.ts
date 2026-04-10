@@ -12,6 +12,10 @@ interface PositionRow extends RowDataPacket {
   updated_at: string;
 }
 
+interface CountRow extends RowDataPacket {
+  total: number;
+}
+
 export interface PositionEntity {
   id: number;
   departmentId: number;
@@ -38,8 +42,10 @@ const positionSelect = `
     DATE_FORMAT(p.created_at, '%Y-%m-%d %H:%i:%s') AS created_at,
     DATE_FORMAT(p.updated_at, '%Y-%m-%d %H:%i:%s') AS updated_at
   FROM positions p
-  INNER JOIN departments d ON d.id = p.department_id
+  INNER JOIN departments d ON d.id = p.department_id AND d.deleted_at IS NULL
 `;
+
+const activePositionCondition = 'p.deleted_at IS NULL';
 
 const mapPosition = (row: PositionRow): PositionEntity => {
   return {
@@ -56,7 +62,7 @@ const mapPosition = (row: PositionRow): PositionEntity => {
 export const positionRepository = {
   async findAll(): Promise<PositionEntity[]> {
     const [rows] = await db.execute<PositionRow[]>(
-      `${positionSelect} ORDER BY d.name ASC, p.name ASC`,
+      `${positionSelect} WHERE ${activePositionCondition} ORDER BY d.name ASC, p.name ASC`,
     );
 
     return rows.map(mapPosition);
@@ -64,7 +70,7 @@ export const positionRepository = {
 
   async findById(id: number): Promise<PositionEntity | null> {
     const [rows] = await db.execute<PositionRow[]>(
-      `${positionSelect} WHERE p.id = ? LIMIT 1`,
+      `${positionSelect} WHERE p.id = ? AND ${activePositionCondition} LIMIT 1`,
       [id],
     );
 
@@ -90,7 +96,7 @@ export const positionRepository = {
       `
         UPDATE positions
         SET department_id = ?, name = ?, description = ?
-        WHERE id = ?
+        WHERE id = ? AND deleted_at IS NULL
       `,
       [payload.departmentId, payload.name, payload.description, id],
     );
@@ -98,9 +104,26 @@ export const positionRepository = {
     return result.affectedRows > 0;
   },
 
-  async delete(id: number): Promise<boolean> {
+  async countActiveEmployees(id: number): Promise<number> {
+    const [rows] = await db.execute<CountRow[]>(
+      `
+        SELECT COUNT(*) AS total
+        FROM users u
+        WHERE u.position_id = ? AND u.deleted_at IS NULL
+      `,
+      [id],
+    );
+
+    return rows[0]?.total ?? 0;
+  },
+
+  async softDelete(id: number): Promise<boolean> {
     const [result] = await db.execute<ResultSetHeader>(
-      'DELETE FROM positions WHERE id = ?',
+      `
+        UPDATE positions
+        SET deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ? AND deleted_at IS NULL
+      `,
       [id],
     );
 

@@ -146,7 +146,7 @@ export const leaveService = {
     const existingLeave = await this.getLeaveById(authUser, id);
     ensurePendingStatus(existingLeave.status);
 
-    await leaveRepository.delete(id);
+    await leaveRepository.softDelete(id);
   },
 
   async approveLeave(authUser: AuthenticatedUser, id: number) {

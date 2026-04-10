@@ -149,6 +149,6 @@ export const employeeService = {
       throw new AppError('Admin HR account cannot be deleted through this endpoint', 422);
     }
 
-    await employeeRepository.delete(id);
+    await employeeRepository.softDelete(id);
   },
 };

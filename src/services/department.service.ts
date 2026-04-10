@@ -1,6 +1,6 @@
 import { departmentRepository } from '../repositories/department.repository';
 import { AppError } from '../utils/app-error';
-import { isDuplicateEntryError, isForeignKeyConstraintError } from '../utils/mysql-error';
+import { isDuplicateEntryError } from '../utils/mysql-error';
 
 interface DepartmentPayload {
   name: string;
@@ -54,18 +54,18 @@ export const departmentService = {
 
   async deleteDepartment(id: number) {
     await this.getDepartmentById(id);
+    const [activePositions, activeEmployees] = await Promise.all([
+      departmentRepository.countActivePositions(id),
+      departmentRepository.countActiveEmployees(id),
+    ]);
 
-    try {
-      await departmentRepository.delete(id);
-    } catch (error) {
-      if (isForeignKeyConstraintError(error)) {
-        throw new AppError(
-          'Department cannot be deleted because it is still used by related data',
-          409,
-        );
-      }
-
-      throw error;
+    if (activePositions > 0 || activeEmployees > 0) {
+      throw new AppError(
+        'Department cannot be deleted because it is still used by active positions or employees',
+        409,
+      );
     }
+
+    await departmentRepository.softDelete(id);
   },
 };

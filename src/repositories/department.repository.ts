@@ -10,6 +10,10 @@ interface DepartmentRow extends RowDataPacket {
   updated_at: string;
 }
 
+interface CountRow extends RowDataPacket {
+  total: number;
+}
+
 export interface DepartmentEntity {
   id: number;
   name: string;
@@ -33,6 +37,8 @@ const departmentSelect = `
   FROM departments d
 `;
 
+const activeDepartmentCondition = 'd.deleted_at IS NULL';
+
 const mapDepartment = (row: DepartmentRow): DepartmentEntity => {
   return {
     id: row.id,
@@ -45,14 +51,16 @@ const mapDepartment = (row: DepartmentRow): DepartmentEntity => {
 
 export const departmentRepository = {
   async findAll(): Promise<DepartmentEntity[]> {
-    const [rows] = await db.execute<DepartmentRow[]>(`${departmentSelect} ORDER BY d.name ASC`);
+    const [rows] = await db.execute<DepartmentRow[]>(
+      `${departmentSelect} WHERE ${activeDepartmentCondition} ORDER BY d.name ASC`,
+    );
 
     return rows.map(mapDepartment);
   },
 
   async findById(id: number): Promise<DepartmentEntity | null> {
     const [rows] = await db.execute<DepartmentRow[]>(
-      `${departmentSelect} WHERE d.id = ? LIMIT 1`,
+      `${departmentSelect} WHERE d.id = ? AND ${activeDepartmentCondition} LIMIT 1`,
       [id],
     );
 
@@ -78,7 +86,7 @@ export const departmentRepository = {
       `
         UPDATE departments
         SET name = ?, description = ?
-        WHERE id = ?
+        WHERE id = ? AND deleted_at IS NULL
       `,
       [payload.name, payload.description, id],
     );
@@ -86,9 +94,39 @@ export const departmentRepository = {
     return result.affectedRows > 0;
   },
 
-  async delete(id: number): Promise<boolean> {
+  async countActivePositions(id: number): Promise<number> {
+    const [rows] = await db.execute<CountRow[]>(
+      `
+        SELECT COUNT(*) AS total
+        FROM positions p
+        WHERE p.department_id = ? AND p.deleted_at IS NULL
+      `,
+      [id],
+    );
+
+    return rows[0]?.total ?? 0;
+  },
+
+  async countActiveEmployees(id: number): Promise<number> {
+    const [rows] = await db.execute<CountRow[]>(
+      `
+        SELECT COUNT(*) AS total
+        FROM users u
+        WHERE u.department_id = ? AND u.deleted_at IS NULL
+      `,
+      [id],
+    );
+
+    return rows[0]?.total ?? 0;
+  },
+
+  async softDelete(id: number): Promise<boolean> {
     const [result] = await db.execute<ResultSetHeader>(
-      'DELETE FROM departments WHERE id = ?',
+      `
+        UPDATE departments
+        SET deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ? AND deleted_at IS NULL
+      `,
       [id],
     );
 

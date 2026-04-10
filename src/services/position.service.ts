@@ -69,18 +69,15 @@ export const positionService = {
 
   async deletePosition(id: number) {
     await this.getPositionById(id);
+    const activeEmployees = await positionRepository.countActiveEmployees(id);
 
-    try {
-      await positionRepository.delete(id);
-    } catch (error) {
-      if (isForeignKeyConstraintError(error)) {
-        throw new AppError(
-          'Position cannot be deleted because it is still used by related data',
-          409,
-        );
-      }
-
-      throw error;
+    if (activeEmployees > 0) {
+      throw new AppError(
+        'Position cannot be deleted because it is still used by active employees',
+        409,
+      );
     }
+
+    await positionRepository.softDelete(id);
   },
 };

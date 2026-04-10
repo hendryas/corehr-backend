@@ -79,7 +79,7 @@ const mapLeave = (row: LeaveRow): LeaveEntity => {
 const buildLeaveFilters = (
   query: LeaveListQuery,
 ): { whereSql: string; values: Array<number | string> } => {
-  const conditions: string[] = [];
+  const conditions: string[] = ['l.deleted_at IS NULL'];
   const values: Array<number | string> = [];
 
   if (query.userId) {
@@ -160,7 +160,7 @@ export const leaveRepository = {
 
   async findById(id: number): Promise<LeaveEntity | null> {
     const [rows] = await db.execute<LeaveRow[]>(
-      `${leaveSelect} WHERE l.id = ? LIMIT 1`,
+      `${leaveSelect} WHERE l.id = ? AND l.deleted_at IS NULL LIMIT 1`,
       [id],
     );
 
@@ -192,7 +192,7 @@ export const leaveRepository = {
       `
         UPDATE leave_requests
         SET user_id = ?, leave_type = ?, start_date = ?, end_date = ?, reason = ?
-        WHERE id = ?
+        WHERE id = ? AND deleted_at IS NULL
       `,
       [payload.userId, payload.leaveType, payload.startDate, payload.endDate, payload.reason, id],
     );
@@ -200,9 +200,13 @@ export const leaveRepository = {
     return result.affectedRows > 0;
   },
 
-  async delete(id: number): Promise<boolean> {
+  async softDelete(id: number): Promise<boolean> {
     const [result] = await db.execute<ResultSetHeader>(
-      'DELETE FROM leave_requests WHERE id = ?',
+      `
+        UPDATE leave_requests
+        SET deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ? AND deleted_at IS NULL
+      `,
       [id],
     );
 
@@ -214,7 +218,7 @@ export const leaveRepository = {
       `
         UPDATE leave_requests
         SET status = 'approved', approved_by = ?, approved_at = ?, rejection_reason = NULL
-        WHERE id = ?
+        WHERE id = ? AND deleted_at IS NULL
       `,
       [approvedBy, approvedAt, id],
     );
@@ -232,7 +236,7 @@ export const leaveRepository = {
       `
         UPDATE leave_requests
         SET status = 'rejected', approved_by = ?, approved_at = ?, rejection_reason = ?
-        WHERE id = ?
+        WHERE id = ? AND deleted_at IS NULL
       `,
       [approvedBy, approvedAt, payload.rejectionReason, id],
     );

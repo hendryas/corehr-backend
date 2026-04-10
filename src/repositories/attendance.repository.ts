@@ -71,7 +71,7 @@ const mapAttendance = (row: AttendanceRow): AttendanceEntity => {
 const buildAttendanceFilters = (
   query: AttendanceListQuery,
 ): { whereSql: string; values: Array<number | string> } => {
-  const conditions: string[] = [];
+  const conditions: string[] = ['a.deleted_at IS NULL'];
   const values: Array<number | string> = [];
 
   if (query.userId) {
@@ -142,7 +142,7 @@ export const attendanceRepository = {
 
   async findById(id: number): Promise<AttendanceEntity | null> {
     const [rows] = await db.execute<AttendanceRow[]>(
-      `${attendanceSelect} WHERE a.id = ? LIMIT 1`,
+      `${attendanceSelect} WHERE a.id = ? AND a.deleted_at IS NULL LIMIT 1`,
       [id],
     );
 
@@ -153,7 +153,7 @@ export const attendanceRepository = {
 
   async findByUserIdAndDate(userId: number, attendanceDate: string): Promise<AttendanceEntity | null> {
     const [rows] = await db.execute<AttendanceRow[]>(
-      `${attendanceSelect} WHERE a.user_id = ? AND a.attendance_date = ? LIMIT 1`,
+      `${attendanceSelect} WHERE a.user_id = ? AND a.attendance_date = ? AND a.deleted_at IS NULL LIMIT 1`,
       [userId, attendanceDate],
     );
 
@@ -192,7 +192,7 @@ export const attendanceRepository = {
       `
         UPDATE attendances
         SET user_id = ?, attendance_date = ?, check_in = ?, check_out = ?, status = ?, notes = ?
-        WHERE id = ?
+        WHERE id = ? AND deleted_at IS NULL
       `,
       [
         payload.userId,
@@ -213,7 +213,7 @@ export const attendanceRepository = {
       `
         UPDATE attendances
         SET check_out = ?, updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?
+        WHERE id = ? AND deleted_at IS NULL
       `,
       [checkOut, id],
     );
@@ -221,9 +221,13 @@ export const attendanceRepository = {
     return result.affectedRows > 0;
   },
 
-  async delete(id: number): Promise<boolean> {
+  async softDelete(id: number): Promise<boolean> {
     const [result] = await db.execute<ResultSetHeader>(
-      'DELETE FROM attendances WHERE id = ?',
+      `
+        UPDATE attendances
+        SET deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ? AND deleted_at IS NULL
+      `,
       [id],
     );
 

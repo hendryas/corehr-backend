@@ -31,14 +31,14 @@ export const dashboardRepository = {
     const [rows] = await db.execute<DashboardStatsRow[]>(
       `
         SELECT
-          (SELECT COUNT(*) FROM users) AS total_employees,
-          (SELECT COUNT(*) FROM users WHERE is_active = 1) AS active_employees,
-          (SELECT COUNT(*) FROM departments) AS total_departments,
-          (SELECT COUNT(*) FROM positions) AS total_positions,
-          (SELECT COUNT(*) FROM attendances WHERE attendance_date = ?) AS total_attendances_today,
-          (SELECT COUNT(*) FROM leave_requests WHERE status = 'pending') AS total_pending_leaves,
-          (SELECT COUNT(*) FROM leave_requests WHERE status = 'approved') AS total_approved_leaves,
-          (SELECT COUNT(*) FROM leave_requests WHERE status = 'rejected') AS total_rejected_leaves
+          (SELECT COUNT(*) FROM users WHERE deleted_at IS NULL) AS total_employees,
+          (SELECT COUNT(*) FROM users WHERE is_active = 1 AND deleted_at IS NULL) AS active_employees,
+          (SELECT COUNT(*) FROM departments WHERE deleted_at IS NULL) AS total_departments,
+          (SELECT COUNT(*) FROM positions WHERE deleted_at IS NULL) AS total_positions,
+          (SELECT COUNT(*) FROM attendances WHERE attendance_date = ? AND deleted_at IS NULL) AS total_attendances_today,
+          (SELECT COUNT(*) FROM leave_requests WHERE status = 'pending' AND deleted_at IS NULL) AS total_pending_leaves,
+          (SELECT COUNT(*) FROM leave_requests WHERE status = 'approved' AND deleted_at IS NULL) AS total_approved_leaves,
+          (SELECT COUNT(*) FROM leave_requests WHERE status = 'rejected' AND deleted_at IS NULL) AS total_rejected_leaves
       `,
       [today],
     );

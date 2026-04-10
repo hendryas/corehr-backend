@@ -56,8 +56,8 @@ const employeeSelect = `
     DATE_FORMAT(u.created_at, '%Y-%m-%d %H:%i:%s') AS created_at,
     DATE_FORMAT(u.updated_at, '%Y-%m-%d %H:%i:%s') AS updated_at
   FROM users u
-  LEFT JOIN departments d ON d.id = u.department_id
-  LEFT JOIN positions p ON p.id = u.position_id
+  LEFT JOIN departments d ON d.id = u.department_id AND d.deleted_at IS NULL
+  LEFT JOIN positions p ON p.id = u.position_id AND p.deleted_at IS NULL
 `;
 
 const mapEmployee = (row: EmployeeRow): EmployeeRecord => {
@@ -83,7 +83,7 @@ const mapEmployee = (row: EmployeeRow): EmployeeRecord => {
 };
 
 const buildEmployeeFilters = (query: EmployeeListQuery): { whereSql: string; values: Array<string | number> } => {
-  const conditions: string[] = [];
+  const conditions: string[] = ['u.deleted_at IS NULL'];
   const values: Array<string | number> = [];
 
   if (query.search) {
@@ -172,7 +172,7 @@ export const employeeRepository = {
 
   async findRecordById(id: number): Promise<EmployeeRecord | null> {
     const [rows] = await db.execute<EmployeeRow[]>(
-      `${employeeSelect} WHERE u.id = ? LIMIT 1`,
+      `${employeeSelect} WHERE u.id = ? AND u.deleted_at IS NULL LIMIT 1`,
       [id],
     );
 
@@ -257,7 +257,7 @@ export const employeeRepository = {
       `
         UPDATE users
         SET ${fields.join(', ')}
-        WHERE id = ?
+        WHERE id = ? AND deleted_at IS NULL
       `,
       values,
     );
@@ -265,9 +265,13 @@ export const employeeRepository = {
     return result.affectedRows > 0;
   },
 
-  async delete(id: number): Promise<boolean> {
+  async softDelete(id: number): Promise<boolean> {
     const [result] = await db.execute<ResultSetHeader>(
-      'DELETE FROM users WHERE id = ?',
+      `
+        UPDATE users
+        SET is_active = 0, deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ? AND deleted_at IS NULL
+      `,
       [id],
     );
 
