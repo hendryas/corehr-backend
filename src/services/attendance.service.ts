@@ -9,6 +9,7 @@ import {
 } from '../utils/mysql-error';
 import { attendanceRepository } from '../repositories/attendance.repository';
 import { employeeRepository } from '../repositories/employee.repository';
+import { leaveRepository } from '../repositories/leave.repository';
 
 const attendanceStatuses: AttendanceStatus[] = ['present', 'sick', 'leave', 'absent'];
 
@@ -37,6 +38,36 @@ const ensureCheckOutAfterCheckIn = (checkIn: string | null, checkOut: string | n
 const ensureAttendanceAccessible = (authUser: AuthenticatedUser, ownerUserId: number): void => {
   if (authUser.role === 'employee' && authUser.id !== ownerUserId) {
     throw new AppError('You do not have permission to access this attendance', 403);
+  }
+};
+
+const ensureNoApprovedLeaveOnDate = async (userId: number, attendanceDate: string): Promise<void> => {
+  const approvedLeave = await leaveRepository.findApprovedByUserIdAndDate(userId, attendanceDate);
+
+  if (approvedLeave) {
+    throw new AppError(
+      `Cannot check in while on approved leave (${approvedLeave.startDate} to ${approvedLeave.endDate})`,
+      422,
+    );
+  }
+};
+
+const ensurePresentAttendanceAllowed = async (
+  userId: number,
+  attendanceDate: string,
+  status: AttendanceStatus,
+): Promise<void> => {
+  if (status !== 'present') {
+    return;
+  }
+
+  const approvedLeave = await leaveRepository.findApprovedByUserIdAndDate(userId, attendanceDate);
+
+  if (approvedLeave) {
+    throw new AppError(
+      `Cannot mark attendance as present during approved leave (${approvedLeave.startDate} to ${approvedLeave.endDate})`,
+      422,
+    );
   }
 };
 
@@ -86,6 +117,7 @@ export const attendanceService = {
   async createAttendance(payload: AttendanceCreatePayload, auditContext?: AuditLogContext) {
     await ensureUserExists(payload.userId);
     ensureCheckOutAfterCheckIn(payload.checkIn, payload.checkOut);
+    await ensurePresentAttendanceAllowed(payload.userId, payload.attendanceDate, payload.status);
 
     try {
       const attendanceId = await attendanceRepository.create(payload);
@@ -156,6 +188,7 @@ export const attendanceService = {
     );
     await ensureUserExists(payload.userId);
     ensureCheckOutAfterCheckIn(payload.checkIn, payload.checkOut);
+    await ensurePresentAttendanceAllowed(payload.userId, payload.attendanceDate, payload.status);
 
     try {
       await attendanceRepository.update(id, payload);
@@ -228,6 +261,7 @@ export const attendanceService = {
   async checkIn(authUser: AuthenticatedUser, auditContext?: AuditLogContext) {
     const now = new Date();
     const attendanceDate = formatDateForMysql(now);
+    await ensureNoApprovedLeaveOnDate(authUser.id, attendanceDate);
     const existingAttendance = await attendanceRepository.findByUserIdAndDate(authUser.id, attendanceDate);
 
     if (existingAttendance) {

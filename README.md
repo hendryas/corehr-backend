@@ -216,6 +216,7 @@ Authorization: Bearer <access_token>
 
 ### Dashboard
 
+- `GET /api/dashboard/me`
 - `GET /api/dashboard/stats`
 
 ## Hak Akses Ringkas

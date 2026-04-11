@@ -11,3 +11,12 @@ export const getStats: RequestHandler = async (_req, res) => {
     data: stats,
   });
 };
+
+export const getMyStats: RequestHandler = async (req, res) => {
+  const stats = await dashboardService.getEmployeeStats(req.user!);
+
+  return sendSuccess(res, {
+    message: 'Employee dashboard stats fetched successfully',
+    data: stats,
+  });
+};

@@ -169,6 +169,26 @@ export const leaveRepository = {
     return leaveRequest ? mapLeave(leaveRequest) : null;
   },
 
+  async findApprovedByUserIdAndDate(userId: number, targetDate: string): Promise<LeaveEntity | null> {
+    const [rows] = await db.execute<LeaveRow[]>(
+      `
+        ${leaveSelect}
+        WHERE l.user_id = ?
+          AND l.status = 'approved'
+          AND l.start_date <= ?
+          AND l.end_date >= ?
+          AND l.deleted_at IS NULL
+        ORDER BY l.start_date DESC, l.created_at DESC
+        LIMIT 1
+      `,
+      [userId, targetDate, targetDate],
+    );
+
+    const leaveRequest = rows[0];
+
+    return leaveRequest ? mapLeave(leaveRequest) : null;
+  },
+
   async create(payload: Required<LeaveCreatePayload>): Promise<number> {
     const [result] = await db.execute<ResultSetHeader>(
       `
