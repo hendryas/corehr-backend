@@ -1,7 +1,7 @@
-import { RowDataPacket } from 'mysql2/promise';
+import { ResultSetHeader, RowDataPacket } from 'mysql2/promise';
 
 import { db } from '../config/db';
-import { AuthenticatedUser } from '../types/auth';
+import { AuthenticatedSession, AuthenticatedUser } from '../types/auth';
 
 interface AuthUserRow extends RowDataPacket {
   id: number;
@@ -21,9 +21,31 @@ interface AuthUserRow extends RowDataPacket {
   position_name: string | null;
 }
 
+interface AuthSessionRow extends RowDataPacket {
+  id: string;
+  user_id: number;
+  last_activity_at: Date | string;
+  invalidated_at: Date | string | null;
+  invalidation_reason: string | null;
+}
+
 export interface AuthUserRecord extends AuthenticatedUser {
   password: string;
 }
+
+const toDate = (value: Date | string): Date => {
+  return value instanceof Date ? value : new Date(value);
+};
+
+const mapAuthSession = (row: AuthSessionRow): AuthenticatedSession => {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    lastActivityAt: toDate(row.last_activity_at),
+    invalidatedAt: row.invalidated_at ? toDate(row.invalidated_at) : null,
+    invalidationReason: row.invalidation_reason,
+  };
+};
 
 const authUserSelect = `
   SELECT
@@ -95,5 +117,68 @@ export const authRepository = {
     const { password: _password, ...safeUser } = mappedUser;
 
     return safeUser;
+  },
+
+  async createSession(sessionId: string, userId: number, lastActivityAt: Date): Promise<void> {
+    await db.execute<ResultSetHeader>(
+      `
+        INSERT INTO auth_sessions (id, user_id, last_activity_at)
+        VALUES (?, ?, ?)
+      `,
+      [sessionId, userId, lastActivityAt],
+    );
+  },
+
+  async findSessionById(sessionId: string): Promise<AuthenticatedSession | null> {
+    const [rows] = await db.execute<AuthSessionRow[]>(
+      `
+        SELECT
+          id,
+          user_id,
+          last_activity_at,
+          invalidated_at,
+          invalidation_reason
+        FROM auth_sessions
+        WHERE id = ?
+        LIMIT 1
+      `,
+      [sessionId],
+    );
+
+    const session = rows[0];
+
+    return session ? mapAuthSession(session) : null;
+  },
+
+  async touchSession(sessionId: string, lastActivityAt: Date): Promise<boolean> {
+    const [result] = await db.execute<ResultSetHeader>(
+      `
+        UPDATE auth_sessions
+        SET last_activity_at = ?
+        WHERE id = ? AND invalidated_at IS NULL
+      `,
+      [lastActivityAt, sessionId],
+    );
+
+    return result.affectedRows > 0;
+  },
+
+  async invalidateSession(
+    sessionId: string,
+    invalidatedAt: Date,
+    invalidationReason: string,
+  ): Promise<boolean> {
+    const [result] = await db.execute<ResultSetHeader>(
+      `
+        UPDATE auth_sessions
+        SET
+          invalidated_at = COALESCE(invalidated_at, ?),
+          invalidation_reason = COALESCE(invalidation_reason, ?)
+        WHERE id = ?
+      `,
+      [invalidatedAt, invalidationReason, sessionId],
+    );
+
+    return result.affectedRows > 0;
   },
 };

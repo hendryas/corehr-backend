@@ -36,6 +36,10 @@ export const env = {
   corsOrigins: parseCorsOrigins(process.env.CORS_ORIGIN ?? 'http://localhost:4200'),
   jwtSecret: requireEnv('JWT_SECRET'),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? '1d',
+  sessionIdleTimeoutMinutes: toNumber(
+    process.env.SESSION_IDLE_TIMEOUT_MINUTES ?? '15',
+    'SESSION_IDLE_TIMEOUT_MINUTES',
+  ),
   db: {
     host: requireEnv('DB_HOST'),
     port: toNumber(process.env.DB_PORT ?? '3306', 'DB_PORT'),

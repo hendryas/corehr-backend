@@ -59,7 +59,9 @@ interface EmployeeRecentAttendanceRow extends RowDataPacket {
 
 interface EmployeeRecentLeaveRow extends RowDataPacket {
   id: number;
-  leave_type: string;
+  leave_type_id: number;
+  leave_type_code: string;
+  leave_type_name: string;
   start_date: string;
   end_date: string;
   status: 'pending' | 'approved' | 'rejected';
@@ -180,7 +182,9 @@ export const dashboardRepository = {
       `
         SELECT
           id,
-          leave_type,
+          leave_type_id,
+          lt.code AS leave_type_code,
+          lt.name AS leave_type_name,
           DATE_FORMAT(start_date, '%Y-%m-%d') AS start_date,
           DATE_FORMAT(end_date, '%Y-%m-%d') AS end_date,
           status,
@@ -190,9 +194,10 @@ export const dashboardRepository = {
           END AS approved_at,
           rejection_reason,
           DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s') AS created_at
-        FROM leave_requests
-        WHERE user_id = ? AND deleted_at IS NULL
-        ORDER BY created_at DESC
+        FROM leave_requests l
+        INNER JOIN leave_types lt ON lt.id = l.leave_type_id
+        WHERE user_id = ? AND l.deleted_at IS NULL
+        ORDER BY l.created_at DESC
         LIMIT 5
       `,
       [userId],
@@ -238,7 +243,9 @@ export const dashboardRepository = {
       })),
       recentLeaves: recentLeaveRows.map((row) => ({
         id: row.id,
-        leaveType: row.leave_type,
+        leaveTypeId: row.leave_type_id,
+        leaveTypeCode: row.leave_type_code,
+        leaveTypeName: row.leave_type_name,
         startDate: row.start_date,
         endDate: row.end_date,
         status: row.status,

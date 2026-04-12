@@ -14,7 +14,9 @@ interface LeaveRow extends RowDataPacket {
   user_id: number;
   employee_code: string;
   full_name: string;
-  leave_type: string;
+  leave_type_id: number;
+  leave_type_code: string;
+  leave_type_name: string;
   start_date: string;
   end_date: string;
   reason: string;
@@ -37,7 +39,9 @@ const leaveSelect = `
     l.user_id,
     u.employee_code,
     u.full_name,
-    l.leave_type,
+    l.leave_type_id,
+    lt.code AS leave_type_code,
+    lt.name AS leave_type_name,
     DATE_FORMAT(l.start_date, '%Y-%m-%d') AS start_date,
     DATE_FORMAT(l.end_date, '%Y-%m-%d') AS end_date,
     l.reason,
@@ -53,6 +57,7 @@ const leaveSelect = `
     DATE_FORMAT(l.updated_at, '%Y-%m-%d %H:%i:%s') AS updated_at
   FROM leave_requests l
   INNER JOIN users u ON u.id = l.user_id
+  INNER JOIN leave_types lt ON lt.id = l.leave_type_id
   LEFT JOIN users approver ON approver.id = l.approved_by
 `;
 
@@ -62,7 +67,9 @@ const mapLeave = (row: LeaveRow): LeaveEntity => {
     userId: row.user_id,
     employeeCode: row.employee_code,
     fullName: row.full_name,
-    leaveType: row.leave_type,
+    leaveTypeId: row.leave_type_id,
+    leaveTypeCode: row.leave_type_code,
+    leaveTypeName: row.leave_type_name,
     startDate: row.start_date,
     endDate: row.end_date,
     reason: row.reason,
@@ -92,9 +99,9 @@ const buildLeaveFilters = (
     values.push(query.status);
   }
 
-  if (query.leaveType) {
-    conditions.push('l.leave_type = ?');
-    values.push(query.leaveType);
+  if (query.leaveTypeId) {
+    conditions.push('l.leave_type_id = ?');
+    values.push(query.leaveTypeId);
   }
 
   if (query.startDate) {
@@ -118,7 +125,6 @@ export const leaveRepository = {
     const { whereSql, values } = buildLeaveFilters(query);
     const offset = (query.page - 1) * query.limit;
 
-    // MySQL on this environment rejects prepared placeholders in LIMIT/OFFSET.
     const [rows] = await db.query<LeaveRow[]>(
       `
         ${leaveSelect}
@@ -189,19 +195,32 @@ export const leaveRepository = {
     return leaveRequest ? mapLeave(leaveRequest) : null;
   },
 
+  async countActiveByLeaveTypeId(leaveTypeId: number): Promise<number> {
+    const [rows] = await db.execute<CountRow[]>(
+      `
+        SELECT COUNT(*) AS total
+        FROM leave_requests l
+        WHERE l.leave_type_id = ? AND l.deleted_at IS NULL
+      `,
+      [leaveTypeId],
+    );
+
+    return rows[0]?.total ?? 0;
+  },
+
   async create(payload: Required<LeaveCreatePayload>): Promise<number> {
     const [result] = await db.execute<ResultSetHeader>(
       `
         INSERT INTO leave_requests (
           user_id,
-          leave_type,
+          leave_type_id,
           start_date,
           end_date,
           reason,
           status
         ) VALUES (?, ?, ?, ?, ?, 'pending')
       `,
-      [payload.userId, payload.leaveType, payload.startDate, payload.endDate, payload.reason],
+      [payload.userId, payload.leaveTypeId, payload.startDate, payload.endDate, payload.reason],
     );
 
     return result.insertId;
@@ -211,10 +230,10 @@ export const leaveRepository = {
     const [result] = await db.execute<ResultSetHeader>(
       `
         UPDATE leave_requests
-        SET user_id = ?, leave_type = ?, start_date = ?, end_date = ?, reason = ?
+        SET user_id = ?, leave_type_id = ?, start_date = ?, end_date = ?, reason = ?
         WHERE id = ? AND deleted_at IS NULL
       `,
-      [payload.userId, payload.leaveType, payload.startDate, payload.endDate, payload.reason, id],
+      [payload.userId, payload.leaveTypeId, payload.startDate, payload.endDate, payload.reason, id],
     );
 
     return result.affectedRows > 0;

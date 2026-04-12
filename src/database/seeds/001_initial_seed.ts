@@ -22,7 +22,7 @@ const getSingleId = async (pool: Pool, query: string, params: QueryValue[]): Pro
 const ensureLeaveRequest = async (
   pool: Pool,
   userId: number,
-  leaveType: string,
+  leaveTypeId: number,
   startDate: string,
   endDate: string,
   reason: string,
@@ -35,10 +35,10 @@ const ensureLeaveRequest = async (
     `
       SELECT id
       FROM leave_requests
-      WHERE user_id = ? AND leave_type = ? AND start_date = ? AND end_date = ?
+      WHERE user_id = ? AND leave_type_id = ? AND start_date = ? AND end_date = ?
       LIMIT 1
     `,
-    [userId, leaveType, startDate, endDate],
+    [userId, leaveTypeId, startDate, endDate],
   );
 
   if (existingRows[0]) {
@@ -58,7 +58,7 @@ const ensureLeaveRequest = async (
     `
       INSERT INTO leave_requests (
         user_id,
-        leave_type,
+        leave_type_id,
         start_date,
         end_date,
         reason,
@@ -68,7 +68,7 @@ const ensureLeaveRequest = async (
         rejection_reason
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
-    [userId, leaveType, startDate, endDate, reason, status, approvedBy, approvedAt, rejectionReason],
+    [userId, leaveTypeId, startDate, endDate, reason, status, approvedBy, approvedAt, rejectionReason],
   );
 };
 
@@ -213,6 +213,12 @@ export const initialSeed: Seed = {
     const citraUserId = await getSingleId(pool, 'SELECT id FROM users WHERE employee_code = ? LIMIT 1', [
       'EMP002',
     ]);
+    const annualLeaveTypeId = await getSingleId(pool, 'SELECT id FROM leave_types WHERE code = ? LIMIT 1', [
+      'annual_leave',
+    ]);
+    const sickLeaveTypeId = await getSingleId(pool, 'SELECT id FROM leave_types WHERE code = ? LIMIT 1', [
+      'sick_leave',
+    ]);
 
     await pool.execute(
       `
@@ -266,7 +272,7 @@ export const initialSeed: Seed = {
     await ensureLeaveRequest(
       pool,
       citraUserId,
-      'annual_leave',
+      annualLeaveTypeId,
       '2026-04-05',
       '2026-04-05',
       'Family event',
@@ -278,7 +284,7 @@ export const initialSeed: Seed = {
     await ensureLeaveRequest(
       pool,
       budiUserId,
-      'sick_leave',
+      sickLeaveTypeId,
       '2026-04-10',
       '2026-04-10',
       'Medical check-up',
@@ -290,7 +296,7 @@ export const initialSeed: Seed = {
     await ensureLeaveRequest(
       pool,
       budiUserId,
-      'annual_leave',
+      annualLeaveTypeId,
       '2026-03-20',
       '2026-03-21',
       'Personal trip',

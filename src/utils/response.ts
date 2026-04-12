@@ -8,6 +8,7 @@ interface SuccessResponseOptions<T> {
 
 interface ErrorResponseOptions {
   statusCode?: number;
+  code?: string | null;
   message: string;
   errors?: unknown;
   requestId?: string | null;
@@ -26,10 +27,11 @@ export const sendSuccess = <T>(
 
 export const sendError = (
   res: Response,
-  { statusCode = 500, message, errors = null, requestId = null }: ErrorResponseOptions,
+  { statusCode = 500, code = null, message, errors = null, requestId = null }: ErrorResponseOptions,
 ): Response => {
   return res.status(statusCode).json({
     success: false,
+    code,
     message,
     errors,
     requestId,

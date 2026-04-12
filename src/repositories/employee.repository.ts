@@ -1,6 +1,7 @@
 import { ResultSetHeader, RowDataPacket } from 'mysql2/promise';
 
 import { db } from '../config/db';
+import { UserRole } from '../types/auth';
 import {
   EmployeeCreatePayload,
   EmployeeEntity,
@@ -179,6 +180,19 @@ export const employeeRepository = {
     const employee = rows[0];
 
     return employee ? mapEmployee(employee) : null;
+  },
+
+  async findActiveByRole(role: UserRole): Promise<EmployeeEntity[]> {
+    const [rows] = await db.execute<EmployeeRow[]>(
+      `
+        ${employeeSelect}
+        WHERE u.role = ? AND u.is_active = 1 AND u.deleted_at IS NULL
+        ORDER BY u.full_name ASC
+      `,
+      [role],
+    );
+
+    return rows.map(mapEmployee).map(toSafeEmployee);
   },
 
   async create(payload: EmployeeCreatePayload): Promise<number> {

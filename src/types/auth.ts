@@ -6,9 +6,13 @@ export interface JwtUserPayload {
   id: number;
   email: string;
   role: UserRole;
+  sessionId: string;
 }
 
-export interface AuthenticatedUser extends JwtUserPayload {
+export interface AuthenticatedUser {
+  id: number;
+  email: string;
+  role: UserRole;
   employeeCode: string;
   fullName: string;
   phone: string | null;
@@ -25,4 +29,17 @@ export interface AuthenticatedUser extends JwtUserPayload {
 export interface LoginRequestBody {
   email: string;
   password: string;
+}
+
+export interface AuthenticatedSession {
+  id: string;
+  userId: number;
+  lastActivityAt: Date;
+  invalidatedAt: Date | null;
+  invalidationReason: string | null;
+}
+
+export interface ActiveRequestSession {
+  id: string;
+  authenticatedAt: Date;
 }

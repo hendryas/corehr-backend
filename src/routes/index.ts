@@ -5,7 +5,9 @@ import attendanceRoutes from './attendance.routes';
 import dashboardRoutes from './dashboard.routes';
 import departmentRoutes from './department.routes';
 import employeeRoutes from './employee.routes';
+import leaveTypeRoutes from './leave-type.routes';
 import leaveRoutes from './leave.routes';
+import notificationRoutes from './notification.routes';
 import positionRoutes from './position.routes';
 
 const router = Router();
@@ -16,6 +18,8 @@ router.use('/dashboard', dashboardRoutes);
 router.use('/departments', departmentRoutes);
 router.use('/positions', positionRoutes);
 router.use('/employees', employeeRoutes);
+router.use('/leave-types', leaveTypeRoutes);
 router.use('/leaves', leaveRoutes);
+router.use('/notifications', notificationRoutes);
 
 export default router;

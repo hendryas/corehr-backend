@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc",
+    "test": "npm run build && node --test dist/tests/*.test.js",
     "typecheck": "tsc --noEmit",
     "check": "npm run typecheck",
     "start": "node dist/server.js",

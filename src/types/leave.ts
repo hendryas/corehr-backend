@@ -3,7 +3,7 @@ import { LeaveRequestStatus } from './auth';
 export interface LeaveListQuery {
   userId: number | null;
   status: LeaveRequestStatus | null;
-  leaveType: string | null;
+  leaveTypeId: number | null;
   startDate: string | null;
   endDate: string | null;
   page: number;
@@ -12,7 +12,7 @@ export interface LeaveListQuery {
 
 export interface LeaveCreatePayload {
   userId?: number;
-  leaveType: string;
+  leaveTypeId: number;
   startDate: string;
   endDate: string;
   reason: string;
@@ -29,7 +29,9 @@ export interface LeaveEntity {
   userId: number;
   employeeCode: string;
   fullName: string;
-  leaveType: string;
+  leaveTypeId: number;
+  leaveTypeCode: string;
+  leaveTypeName: string;
   startDate: string;
   endDate: string;
   reason: string;

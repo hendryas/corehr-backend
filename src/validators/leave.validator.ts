@@ -6,7 +6,6 @@ import {
   addError,
   isOneOf,
   isValidDateString,
-  normalizeOptionalString,
   parsePositiveInteger,
   sendValidationError,
   ValidationErrors,
@@ -20,7 +19,7 @@ const buildLeavePayload = (
   errors: ValidationErrors;
   payload?: {
     userId?: number;
-    leaveType: string;
+    leaveTypeId: number;
     startDate: string;
     endDate: string;
     reason: string;
@@ -28,7 +27,7 @@ const buildLeavePayload = (
 } => {
   const errors: ValidationErrors = {};
   const userId = reqBody.user_id === undefined ? null : parsePositiveInteger(reqBody.user_id);
-  const leaveType = typeof reqBody.leave_type === 'string' ? reqBody.leave_type.trim() : '';
+  const leaveTypeId = parsePositiveInteger(reqBody.leave_type_id);
   const startDate = typeof reqBody.start_date === 'string' ? reqBody.start_date.trim() : '';
   const endDate = typeof reqBody.end_date === 'string' ? reqBody.end_date.trim() : '';
   const reason = typeof reqBody.reason === 'string' ? reqBody.reason.trim() : '';
@@ -37,8 +36,8 @@ const buildLeavePayload = (
     addError(errors, 'user_id', 'User id must be a positive integer');
   }
 
-  if (!leaveType) {
-    addError(errors, 'leave_type', 'Leave type is required');
+  if (!leaveTypeId) {
+    addError(errors, 'leave_type_id', 'Leave type id must be a positive integer');
   }
 
   if (!startDate) {
@@ -69,7 +68,7 @@ const buildLeavePayload = (
     errors,
     payload: {
       ...(userId ? { userId } : {}),
-      leaveType,
+      leaveTypeId: Number(leaveTypeId),
       startDate,
       endDate,
       reason,
@@ -95,7 +94,7 @@ export const validateLeaveListQuery: RequestHandler = (req, res, next) => {
   const errors: ValidationErrors = {};
   const userId = req.query.user_id ? parsePositiveInteger(req.query.user_id) : null;
   const status = typeof req.query.status === 'string' ? req.query.status.trim() : null;
-  const leaveType = normalizeOptionalString(req.query.leave_type);
+  const leaveTypeId = req.query.leave_type_id ? parsePositiveInteger(req.query.leave_type_id) : null;
   const startDate = typeof req.query.start_date === 'string' ? req.query.start_date.trim() : null;
   const endDate = typeof req.query.end_date === 'string' ? req.query.end_date.trim() : null;
   const page = req.query.page === undefined ? 1 : parsePositiveInteger(req.query.page);
@@ -107,6 +106,10 @@ export const validateLeaveListQuery: RequestHandler = (req, res, next) => {
 
   if (status && !isOneOf(status, leaveStatuses)) {
     addError(errors, 'status', 'Status must be one of pending, approved, or rejected');
+  }
+
+  if (req.query.leave_type_id !== undefined && !leaveTypeId) {
+    addError(errors, 'leave_type_id', 'Leave type id must be a positive integer');
   }
 
   if (startDate && !isValidDateString(startDate)) {
@@ -138,7 +141,7 @@ export const validateLeaveListQuery: RequestHandler = (req, res, next) => {
   req.leaveListQuery = {
     userId,
     status: status as LeaveRequestStatus | null,
-    leaveType,
+    leaveTypeId,
     startDate,
     endDate,
     page: Number(page),

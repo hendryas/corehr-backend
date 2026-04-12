@@ -34,7 +34,9 @@ export interface EmployeeDashboardAttendanceItem {
 
 export interface EmployeeDashboardLeaveItem {
   id: number;
-  leaveType: string;
+  leaveTypeId: number;
+  leaveTypeCode: string;
+  leaveTypeName: string;
   startDate: string;
   endDate: string;
   status: LeaveRequestStatus;

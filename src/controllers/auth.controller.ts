@@ -20,3 +20,15 @@ export const me: RequestHandler = async (req, res) => {
     data: req.user ?? null,
   });
 };
+
+export const logout: RequestHandler = async (req, res) => {
+  await authService.logout(req.authSession!.id, req.user!.id, {
+    logger: req.logger,
+    actorUserId: req.user!.id,
+    actorRole: req.user!.role,
+  });
+
+  return sendSuccess(res, {
+    message: 'Logout successful',
+  });
+};

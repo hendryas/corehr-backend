@@ -6,9 +6,11 @@ Backend API untuk technical test CoreHR Sistem HR. Project ini dibangun dengan N
 
 - Authentication login untuk `admin_hr` dan `employee`
 - Master data `departments` dan `positions`
+- Master data `leave_types`
 - Manajemen `employees`
 - Attendance dengan endpoint `check-in` dan `check-out`
 - Leave request dengan alur `approve` dan `reject`
+- Notifikasi in-app untuk event pengajuan dan approval/rejection cuti
 - Dashboard summary untuk kebutuhan HR
 - Custom migration runner tanpa ORM
 - Seed data awal untuk demo
@@ -75,6 +77,7 @@ DB_NAME=corehr
 
 JWT_SECRET=replace_with_a_long_random_secret_key
 JWT_EXPIRES_IN=1d
+SESSION_IDLE_TIMEOUT_MINUTES=15
 ```
 
 ### 3. Buat database MySQL
@@ -162,7 +165,41 @@ Authorization: Bearer <access_token>
 ### Auth
 
 - `POST /api/auth/login`
+- `POST /api/auth/logout`
 - `GET /api/auth/me`
+
+### Notifications
+
+- `GET /api/notifications`
+- `PATCH /api/notifications/read-all`
+- `PATCH /api/notifications/:id/read`
+
+## Session Idle Timeout
+
+- Semua endpoint yang memakai middleware `authenticate` menggunakan sliding idle timeout selama 15 menit.
+- Aktivitas dihitung dari request terautentikasi terakhir yang berhasil. Request sukses berikutnya akan menggeser `last_activity_at` menjadi 15 menit dari request tersebut.
+- Backend menyimpan session server-side di tabel `auth_sessions`, sedangkan JWT membawa `sessionId` agar timeout tidak bisa dibypass hanya karena token masih valid di client.
+- Saat idle timeout terjadi, backend mengembalikan `401 Unauthorized` tanpa redirect HTML. Frontend yang memutuskan redirect ke halaman login.
+
+Contoh response:
+
+```json
+{
+  "success": false,
+  "code": "SESSION_IDLE_TIMEOUT",
+  "message": "Session expired due to 15 minutes of inactivity. Please login again.",
+  "errors": null,
+  "requestId": "req_123456"
+}
+```
+
+## Notifications
+
+- Backend sekarang menyimpan notifikasi di tabel `notifications`.
+- Pengajuan cuti membuat notifikasi untuk semua `admin_hr` aktif selain aktor yang melakukan request.
+- Approval atau rejection cuti oleh `admin_hr` membuat notifikasi untuk pemilik cuti.
+- Delivery notifikasi saat ini berbasis polling API, belum websocket atau push notification.
+- `GET /api/notifications` mengembalikan daftar notifikasi milik user login beserta `unreadCount`.
 
 ### Departments
 
@@ -179,6 +216,14 @@ Authorization: Bearer <access_token>
 - `POST /api/positions`
 - `PUT /api/positions/:id`
 - `DELETE /api/positions/:id`
+
+### Leave Types
+
+- `GET /api/leave-types`
+- `GET /api/leave-types/:id`
+- `POST /api/leave-types`
+- `PUT /api/leave-types/:id`
+- `DELETE /api/leave-types/:id`
 
 ### Employees
 
@@ -231,6 +276,7 @@ Authorization: Bearer <access_token>
   - bisa melihat attendance dan leave miliknya sendiri
   - bisa check-in/check-out
   - bisa membuat, mengubah, dan menghapus leave miliknya selama masih `pending`
+  - memilih jenis cuti dari master `leave_types`
 
 ## Contoh Request dan Response
 
@@ -374,7 +420,9 @@ Response:
     "userId": 2,
     "employeeCode": "EMP001",
     "fullName": "Budi Santoso",
-    "leaveType": "annual_leave",
+    "leaveTypeId": 1,
+    "leaveTypeCode": "annual_leave",
+    "leaveTypeName": "Annual Leave",
     "startDate": "2026-04-10",
     "endDate": "2026-04-10",
     "reason": "Medical check-up",
@@ -461,6 +509,7 @@ Error:
 - [ ] `GET /api/auth/me` mengembalikan user login
 - [ ] CRUD department berjalan sesuai role
 - [ ] CRUD position berjalan sesuai role
+- [ ] CRUD leave type berjalan sesuai role
 - [ ] `GET /api/employees` mendukung search, filter, dan pagination
 - [ ] `GET /api/employees/me/profile` hanya bisa diakses employee
 - [ ] `GET /api/employees/export/csv` berhasil download CSV
@@ -468,7 +517,7 @@ Error:
 - [ ] `POST /api/attendances/check-in` hanya bisa sekali per hari
 - [ ] `POST /api/attendances/check-out` gagal jika belum check-in
 - [ ] `GET /api/attendances/export/csv` berhasil download CSV
-- [ ] `POST /api/leaves` berhasil membuat leave request
+- [ ] `POST /api/leaves` berhasil membuat leave request dengan `leave_type_id`
 - [ ] leave `pending` bisa diupdate dan dihapus oleh owner
 - [ ] leave `approved/rejected` tidak bisa diubah sembarangan
 - [ ] `PATCH /api/leaves/:id/approve` hanya bisa oleh admin HR

@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 
 import { authRepository } from '../repositories/auth.repository';
+import { sessionService } from './session.service';
 import { LoginRequestBody } from '../types/auth';
 import { AppError } from '../utils/app-error';
 import { AuditLogContext, logAuditEvent } from '../utils/logger';
@@ -56,10 +57,12 @@ export const authService = {
       throw new AppError('Invalid email or password', 401);
     }
 
+    const session = await sessionService.createSession(user.id);
     const accessToken = signAccessToken({
       id: user.id,
       email: user.email,
       role: user.role,
+      sessionId: session.id,
     });
 
     const { password: _password, ...safeUser } = user;
@@ -83,5 +86,22 @@ export const authService = {
       accessToken,
       user: safeUser,
     };
+  },
+
+  async logout(sessionId: string, userId: number, auditContext?: AuditLogContext) {
+    await sessionService.logout(sessionId);
+
+    logAuditEvent(
+      {
+        ...auditContext,
+        actorUserId: userId,
+      },
+      'auth.logout_success',
+      {
+        module: 'auth',
+        targetUserId: userId,
+      },
+      'Logout successful',
+    );
   },
 };
